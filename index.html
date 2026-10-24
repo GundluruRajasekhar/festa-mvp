@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Festa MVP - AI Copilot For Events</title>
+<style>
+:root{--plum:#34184a;--gold:#f2a900;--jade:#1f8a70;--paper:#fff9fb;--ink:#241530;--mute:#6d5c7a;--line:#e8dcee;--hl:#fff1c9}
+@media(prefers-color-scheme:dark){:root{--paper:#1c1026;--ink:#f5eefa;--mute:#b9a6c9;--line:#3d2751;--hl:#4a3410}}
+*{box-sizing:border-box}body{margin:0;font:17px/1.6 system-ui,Segoe UI,sans-serif;background:var(--paper);color:var(--ink)}
+header{background:var(--plum);color:#fff;padding:16px 5%}header b{font:700 26px Georgia,serif;color:var(--gold)}header span{margin-left:12px;opacity:.85}
+main{max-width:900px;margin:0 auto;padding:28px 5% 60px}
+h1{font:700 clamp(28px,5vw,42px)/1.15 Georgia,serif;margin:.1em 0 .3em}.mute{color:var(--mute)}
+form{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;border:1px solid var(--line);border-radius:10px;padding:18px}
+label{display:grid;gap:4px;font-weight:600;font-size:14px}
+fieldset{grid-column:1/-1;border:1px solid var(--line);border-radius:8px;display:flex;flex-wrap:wrap;gap:6px 22px}legend{font-weight:600;font-size:14px}
+fieldset label{display:flex;gap:8px;align-items:center;font-weight:400;font-size:16px}
+input,select,button{font:inherit;padding:10px;border-radius:6px;border:1px solid var(--line);background:var(--paper);color:var(--ink)}
+input[type=checkbox]{width:20px;height:20px;padding:0}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:16px 0}
+button{cursor:pointer;font-weight:700;border:2px solid var(--gold)}
+#go{background:var(--gold);color:#241530;font-size:20px;padding:14px 28px}button:disabled{opacity:.45;cursor:default}
+:focus-visible{outline:3px solid var(--jade);outline-offset:2px}
+#status{min-height:1.6em;font-weight:600;color:var(--jade)}#status.err{color:#c0392b}
+#prog{height:8px;border-radius:4px;background:var(--line);overflow:hidden}#prog i{display:block;height:100%;width:0;background:var(--jade);transition:width .3s}
+#ai{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:18px 0}
+.tile{border:1px solid var(--line);border-left:5px solid var(--jade);border-radius:8px;padding:10px 14px}.tile b{display:block;font:700 28px Georgia,serif}.tile span{color:var(--mute);font-size:14px}
+.scene{margin:20px 0}.scene h2{font:700 20px Georgia,serif;margin:0 0 6px}
+.s{display:inline;padding:2px 3px;border-radius:4px;font:19px/1.8 Georgia,serif}.s.on{background:var(--hl);box-shadow:0 0 0 2px var(--gold)}
+
+.bar{display:grid;grid-template-columns:minmax(110px,190px) 1fr 150px;gap:10px;align-items:center;margin:8px 0;font-size:15px}.bar i{display:block;height:12px;border-radius:6px;background:var(--jade)}
+ul.p{padding-left:20px}ul.p li{margin:6px 0}ul.c{list-style:none;padding:0}ul.c label{display:flex;gap:8px;align-items:flex-start;font-weight:400;font-size:16px}ul.c input{margin-top:4px}
+h2.sec{font:700 22px Georgia,serif;margin:1.6em 0 .4em}</style></head><body>
+<header><b>Festa</b><span>AI Copilot For Events - MVP</span></header>
+<main>
+<h1>AI Copilot For Events</h1>
+<p class="mute">Enter your event details and press Generate Plan. Then press Start Narration to hear the plan explained in about three minutes. Turn your sound on.</p>
+<form id="f" onsubmit="return false">
+<label>Event type<select id="type"><option value="wedding">Wedding</option><option value="birthday">Birthday</option><option value="community">Community event</option><option value="corporate">Corporate event</option></select></label>
+<label>Guests<input id="guests" type="number" min="2" max="5000" value="150"></label>
+<label>Budget (INR)<input id="budget" type="number" min="1000" max="100000000" step="1000" value="1000000"></label>
+<label>Event date<input id="date" type="date"></label>
+<label>City<input id="city" type="text" maxlength="40" value="Hyderabad"></label>
+<fieldset><legend>Sustainability practices you plan to follow</legend>
+<label><input type="checkbox" class="sus" value="reducing food waste" checked>Reduce food waste</label>
+<label><input type="checkbox" class="sus" value="using reusable decor" checked>Reusable decor</label>
+<label><input type="checkbox" class="sus" value="hiring local vendors" checked>Local vendors</label></fieldset>
+</form>
+<div class="row"><button id="gen" type="button">Generate Plan</button></div>
+<div id="ai" aria-label="AI insights"></div>
+<div class="row">
+<button id="go" type="button">Start Narration</button>
+<button id="pause" type="button" disabled>Pause</button>
+<button id="stop" type="button" disabled>Stop</button>
+<label>Voice<select id="voice"></select></label>
+<label>Speed <span id="rv">1</span><input id="rate" type="range" min="0.7" max="1.3" step="0.05" value="1"></label>
+<span id="est" class="mute"></span>
+</div>
+<p id="status" role="status" aria-live="polite"></p>
+<div id="prog" aria-hidden="true"><i></i></div>
+<div id="cap" aria-label="Narration captions"></div>
+<section id="plan" hidden>
+<h2 class="sec">Timeline</h2><ul id="tl" class="p"></ul>
+<h2 class="sec">Budget Breakdown</h2><div id="bud"></div>
+<h2 class="sec">Checklist</h2><ul id="chk" class="c"></ul>
+<h2 class="sec">AI Insights</h2><ul id="ins" class="p"></ul>
+</section>
+<p class="mute"><small>AI insights are rule-based planning estimates computed in your browser from the details you enter. They are not vendor quotes or market data.</small></p>
+<script>
+const $=id=>document.getElementById(id);
+const esc=s=>s.replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const trim=x=>String(+x.toFixed(1));
+function money(n){n=Math.round(n);
+ if(n>=1e7)return trim(n/1e7)+" crore rupees";
+ if(n>=1e5)return trim(n/1e5)+" lakh rupees";
+ if(n>=1e3)return trim(n/1e3)+" thousand rupees";
+ return n+" rupees"}
+const cap=s=>s[0].toUpperCase()+s.slice(1);
+/* split: [category, percent]; food = index 1; vi = vendor category index */
+const T={
+wedding:{tip:"For a wedding, a weekday or off-season date can lower the venue price a lot, so ask for both quotes.",label:"wedding",tight:1500,vi:3,
+ split:[["Venue",30],["Catering",30],["Decor and flowers",12],["Photography and video",10],["Music and entertainment",8],["Attire and makeup",6],["Reserve and other costs",4]],
+ needs:[["a venue","it sets your guest limit and most of your cost"],["a caterer","food is the second biggest expense, so fix the menu early"],["a decorator","they shape the look of the stage and entrance"],["a photographer","good ones book out months ahead"],["an officiant","confirm the auspicious time with the family"],["music","decide the sound for the ceremony and the reception"],["guest stay and transport","out-of-town guests will need rooms and rides"]]},
+birthday:{tip:"For a birthday, a home or community hall can cut your venue cost and still feel special.",label:"birthday party",tight:500,vi:3,
+ split:[["Venue",20],["Food and drinks",35],["Decor",15],["Cake and desserts",10],["Games and entertainment",12],["Return gifts",5],["Reserve and other costs",3]],
+ needs:[["a venue","check the time slot and the seating"],["a caterer","pick a menu that suits every age group"],["a cake","order it at least a week ahead"],["decorations","one theme keeps the budget under control"],["games or an entertainer","it keeps children and adults busy"],["invitations","send them early and track replies"]]},
+community:{tip:"For a community event, local sponsors and volunteers can cover a large part of the cost, so ask them early.",label:"community event",tight:150,vi:2,
+ split:[["Venue or ground",20],["Food and water",30],["Stage and sound",18],["Permits and safety",10],["Publicity",10],["Volunteers and supplies",8],["Reserve and other costs",4]],
+ needs:[["permission from the local authority","apply early, as approvals can take time"],["a ground or hall","check the capacity and parking"],["sound and lighting","people must be able to hear the programme"],["food and water","plan enough for the whole crowd"],["first aid and security","safety comes first at public gatherings"],["volunteers","give each person one clear role"]]},
+corporate:{tip:"For a corporate party, a package deal from one venue can be cheaper than booking each service separately.",label:"corporate party",tight:1000,vi:2,
+ split:[["Venue",25],["Food and drinks",30],["Stage, sound and screens",15],["Entertainment",10],["Branding and gifts",10],["Transport",6],["Reserve and other costs",4]],
+ needs:[["a venue","choose one near public transport and parking"],["a caterer","collect dietary needs before you finalise the menu"],["audio and video equipment","test it the day before"],["a host","it keeps the programme on time"],["gifts and branding","order early to avoid rush charges"],["employee registration","it gives you an accurate head count"]]},
+other:{tip:"For any party, compare at least three quotes for the venue and the food, because those are your biggest costs.",label:"party",tight:500,vi:2,
+ split:[["Venue",25],["Food and drinks",33],["Decor",15],["Entertainment",15],["Photography",7],["Reserve and other costs",5]],
+ needs:[["a venue","match the space to your guest count"],["a caterer","agree the menu and price per plate"],["decor","keep it simple and match the theme"],["entertainment","music or games, based on your guests"],["photography","a friend with a good camera can save money"],["invitations","send them early and track replies"]]}
+};
+const fmtL=d=>d.toLocaleDateString("en-IN",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
+const fmtS=d=>d.toLocaleDateString("en-IN",{day:"numeric",month:"long",year:"numeric"});
+const list=a=>a.length<2?a.join(""):a.slice(0,-1).join(", ")+" and "+a[a.length-1];
+/* Rule-based AI insights (all transparent formulas) */
+function insights(v){
+ const t=T[v.type],B=v.budget,n=v.guests,pg=B/n;
+ const days=Math.round((v.date-v.today)/864e5);
+ const foodPct=t.split[1][1],resPct=t.split[t.split.length-1][1],venuePct=t.split[0][1];
+ const extraCost=B*foodPct/100*0.15,extraPct=extraCost/B*100;
+ const risk=extraPct<=resPct?"low":extraPct<=2*resPct?"medium":"high";
+ const dow=v.date.getDay(),weekend=dow===0||dow===6;
+ const vAmt=B*t.split[t.vi][1]/100,cAmt=B*foodPct/100;
+ let c=90;const r=pg/t.tight;
+ c+=r<.6?-30:r<1?-15:r>=3?4:0;
+ c+=days<14?-20:days<30?-12:days<60?-5:0;
+ c+=n>1000?-5:0;
+ if(v.conf!=null&&v.conf>n*1.15)c-=10;
+ if(v.spent!=null&&v.spent>B*.9)c-=15;
+ c=Math.max(40,Math.min(97,c));
+ const sust=55+10*v.sus.length;
+ const nonRes=100-resPct;
+ return{pg,days,extraCost,risk,weekend,venueSave:B*venuePct/100*0.12,vName:t.split[t.vi][0].toLowerCase(),vLo:vAmt*.8,vHi:vAmt*1.2,perPlate:cAmt/n,conf:c,sust,
+  vol:Math.max(1,Math.round(n/15)),vendors:t.split.length-1,local:B*nonRes/100}}
+function buildScript(v){
+ const t=T[v.type],n=v.guests,B=v.budget,L=t.label,I=insights(v),days=I.days;
+ const tight=I.pg<t.tight?"That is on the lower side, so keep choices simple and compare quotes.":I.pg>t.tight*3?"That is comfortable, so you can afford upgrades.":"That is a workable amount.";
+ const at=f=>fmtS(new Date(v.today.getTime()+Math.round(days*f)*864e5));
+ const place=v.city?v.city:"your budget level";
+ const ex=Math.round(n*.15);
+ const ai=[
+  "Now, the AI insights. First, AI risk prediction. Based on "+n+" guests, there is a "+I.risk+" risk of budget overrun if attendance exceeds plan by more than 15 percent, about "+ex+" extra guests, which could add around "+money(I.extraCost)+" in food costs.",
+  I.weekend?"Next, AI cost optimisation. Choosing a Thursday venue could reduce venue expenses by approximately 12 percent, saving about "+money(I.venueSave)+".":"Next, AI cost optimisation. Your date is a weekday, which already helps. Comparing three venue quotes could still save about 12 percent, or "+money(I.venueSave)+".",
+  "Vendor intelligence. For "+place+", plan for "+I.vName+" between "+money(I.vLo)+" and "+money(I.vHi)+", and food at about "+money(I.perPlate)+" per plate. These are planning ranges, not quotes.",
+  "Festa predicts this "+L+" can be completed within budget with a confidence score of "+I.conf+" percent.",
+  v.sus.length?"By "+list(v.sus)+", this event scores "+I.sust+" out of 100 for sustainability.":"Your sustainability score is "+I.sust+" out of 100. Reduce food waste, reuse decor and hire locally to raise it."];
+ if(v.type==="community")ai.push("Community impact: this event is expected to engage "+n+" participants, needs about "+I.vol+" volunteers, and creates work for local vendors and service providers, keeping around "+money(I.local)+" in your local economy.");
+ let status;
+ if(v.spent!=null||v.conf!=null){
+  const p=v.spent!=null?Math.round(v.spent/B*100):null;
+  const bits=[];if(p!=null)bits.push("You have spent "+money(v.spent)+", which is "+p+" percent of your budget.");if(v.conf!=null)bits.push(v.conf+" of "+n+" guests have confirmed.");
+  const flag=(p!=null&&p>=90)?"Warning: very little budget is left, so review your remaining costs now.":(v.conf!=null&&v.conf>n*1.15)?"Warning: confirmations are more than 15 percent above plan, so raise your food budget or cap the list.":(p!=null&&p>=70&&days>45)?"You have spent a lot early, so slow down.":"You are on track.";
+  status="So far: "+bits.join(" ")+" "+flag}
+ else status="Enter what you have spent and how many guests confirmed, and Festa will check them against your plan.";
+ return[
+ ["Welcome",["Welcome to Festa, your AI event copilot. I will explain your costs, what you need, your dates, and what our AI predicts.",
+  "This is a "+L+" for "+n+" guests"+(v.city?" in "+v.city:"")+", with a budget of "+money(B)+", on "+fmtL(v.date)+". That is "+days+" days from today."]],
+ ["The cost",["First, the cost. Your budget works out to about "+money(I.pg)+" per guest. "+tight,"Festa suggests this split."].concat(t.split.map(([c,p])=>c+", about "+money(B*p/100)+", "+p+" percent."))],
+ ["What you need",["You will need "+list(t.needs.map(x=>x[0]))+".","Book "+t.needs[0][0]+" first. "+cap(t.needs[0][1])+". Then lock in "+t.needs[1][0]+". "+cap(t.needs[1][1])+"."]],
+ ["Your dates",["Here are your dates, counted back from the event."+(days<=14?" Your event is close, so start today.":""),
+  "Today, "+at(0)+": fix your budget and guest list.","By "+at(.2)+": book the venue.","By "+at(.45)+": book your main vendors.","By "+at(.7)+": send invitations and finalise the menu.","By "+at(.9)+": reconfirm vendors and your head count."]],
+ ["AI insights",ai],
+ ["Smart tips",v.type==="community"?[t.tip]:[t.tip,"Always get written quotes, keep a record of every payment, and confirm your guest count a week before, because food is billed by the plate. If any part is outdoors, keep a weather backup."]],
+ ["Your AI copilot",["Here is the copilot moment. Each time you update your spending or guest confirmations, Festa re-analyses your budget, guest numbers and time left, and gives recommendations to keep your event on track and within budget.",status,
+  "Festa. The AI copilot for weddings, birthdays and community events. Plan smarter, spend wisely, and celebrate better."]]
+ ]}
+function flat(sc){return sc.flatMap(([h,ss])=>ss.map(s=>({h,s})))}
+const wc=sc=>flat(sc).reduce((a,x)=>a+x.s.split(/\s+/).length,0);
+/* ---- UI ---- */
+if(typeof document!=="undefined"&&document.getElementById("go")){
+const SS=window.speechSynthesis;
+let run=0,items=[],els=[],paused=false;
+const td=new Date();td.setHours(0,0,0,0);
+const d0=new Date(td);d0.setDate(d0.getDate()+90);
+$("date").value=d0.getFullYear()+"-"+String(d0.getMonth()+1).padStart(2,"0")+"-"+String(d0.getDate()).padStart(2,"0");
+const say=(m,e)=>{$("status").textContent=m;$("status").className=e?"err":""};
+const inr=n=>"\u20B9"+Math.round(n).toLocaleString("en-IN");
+const STEPS=[[0,"Fix your budget and guest list"],[.2,"Book the venue"],[.45,"Book your main vendors"],[.7,"Send invitations and finalise the menu"],[.9,"Reconfirm vendors and your head count"],[1,"Event day"]];
+function read(){
+ const v={type:$("type").value,guests:+$("guests").value,budget:+$("budget").value,date:new Date($("date").value+"T00:00:00"),today:td,
+  city:$("city").value.trim().slice(0,40),spent:null,conf:null,sus:[...document.querySelectorAll(".sus:checked")].map(x=>x.value)};
+ if(!(v.guests>=2&&v.guests<=5000)){say("Enter guests between 2 and 5,000.",1);return null}
+ if(!(v.budget>=1000&&v.budget<=1e8)){say("Enter a budget between 1,000 and 10,00,00,000 rupees.",1);return null}
+ if(isNaN(v.date)||v.date<=td){say("Choose an event date after today.",1);return null}
+ return v}
+function est(v){const s=Math.round(wc(buildScript(v))/(155*+$("rate").value)*60);$("est").textContent="About "+Math.floor(s/60)+":"+String(s%60).padStart(2,"0")+" minutes"}
+function render(v){
+ const I=insights(v),t=T[v.type],B=v.budget;
+ const x=[[I.conf+"%","Budget confidence"],[cap(I.risk),"Budget risk"],[I.sust+"/100","Sustainability score"],[inr(I.venueSave),"Potential savings"]];
+ $("ai").innerHTML=x.map(([a,b])=>`<div class="tile"><b>${esc(String(a))}</b><span>${b}</span></div>`).join("");
+ $("tl").innerHTML=STEPS.map(([f,s])=>`<li><b>${esc(fmtS(new Date(v.today.getTime()+Math.round(I.days*f)*864e5)))}</b>: ${s}</li>`).join("");
+ $("bud").innerHTML=t.split.map(([c,p])=>`<div class="bar"><span>${c}</span><i style="width:${p*3}%"></i><span>${inr(B*p/100)} (${p}%)</span></div>`).join("");
+ $("chk").innerHTML=t.needs.map(([a,r])=>`<li><label><input type="checkbox"><span>${cap(a)}<small class="mute"> - ${r}</small></span></label></li>`).join("");
+ const ai=buildScript(v).find(s=>s[0]==="AI insights")[1].map(s=>s.replace(/^Now, the AI insights\. First, /,"").replace(/^Next, /,""));
+ $("ins").innerHTML=ai.map(s=>`<li>${esc(s)}</li>`).join("");
+ $("plan").hidden=false;est(v)}
+function voices(){const vs=SS.getVoices().filter(v=>/^en/i.test(v.lang));
+ vs.sort((a,b)=>(/en-IN/i.test(b.lang)-/en-IN/i.test(a.lang)));
+ $("voice").innerHTML=vs.map(v=>`<option value="${esc(v.name)}">${esc(v.name)} (${esc(v.lang)})</option>`).join("")||"<option>Default voice</option>"}
+function mark(i){els.forEach(e=>e.classList.remove("on"));const e=els[i];if(e){e.classList.add("on");e.scrollIntoView({block:"center",behavior:"smooth"})}$("prog").firstChild.style.width=(i/items.length*100)+"%"}
+function finish(msg){$("pause").disabled=$("stop").disabled=true;$("go").disabled=false;paused=false;$("pause").textContent="Pause";say(msg||"Narration finished. Change any detail and press Generate Plan again.");els.forEach(e=>e.classList.remove("on"));$("prog").firstChild.style.width=msg?"0":"100%"}
+function speak(i,id){
+ if(id!==run)return;
+ if(i>=items.length){finish();return}
+ mark(i);
+ const u=new SpeechSynthesisUtterance(items[i].s),vo=SS.getVoices().find(x=>x.name===$("voice").value);
+ if(vo){u.voice=vo;u.lang=vo.lang}else u.lang="en-IN";
+ u.rate=+$("rate").value;
+ u.onend=()=>speak(i+1,id);
+ u.onerror=e=>{if(id===run&&e.error!=="interrupted"&&e.error!=="canceled"){finish("Speech problem: "+e.error+". Check your sound and try again.")}};
+ SS.speak(u)}
+function start(){
+ if(!SS){say("This browser cannot speak aloud. Please open the page in Chrome, Edge or Safari.",1);return}
+ const v=read();if(!v)return;
+ run++;SS.cancel();render(v);
+ const sc=buildScript(v);items=flat(sc);
+ $("cap").innerHTML=sc.map(([h,ss])=>`<section class="scene"><h2>${h}</h2><p>${ss.map(s=>`<span class="s">${esc(s)}</span> `).join("")}</p></section>`).join("");
+ els=[...document.querySelectorAll(".s")];
+ $("go").disabled=true;$("pause").disabled=$("stop").disabled=false;say("Narrating your "+T[v.type].label+" plan...");
+ speak(0,run)}
+$("gen").onclick=()=>{const v=read();if(v){render(v);say("Plan ready. Press Start Narration to hear it explained.")}};
+$("go").onclick=start;
+$("stop").onclick=()=>{run++;SS.cancel();finish("Narration stopped.")};
+$("pause").onclick=()=>{if(paused){SS.resume();paused=false;$("pause").textContent="Pause";say("Narrating...")}else{SS.pause();paused=true;$("pause").textContent="Resume";say("Paused.")}};
+$("rate").oninput=()=>{$("rv").textContent=$("rate").value;const v=read();if(v)est(v)};
+["type","guests","budget","date","city"].forEach(i=>$(i).onchange=()=>{const v=read();if(v){say("Details changed. Press Generate Plan to update.");est(v)}});
+document.querySelectorAll(".sus").forEach(c=>c.onchange=()=>say("Details changed. Press Generate Plan to update."));
+if(SS){voices();SS.onvoiceschanged=voices}else say("This browser cannot speak aloud. Please open the page in Chrome, Edge or Safari.",1);
+{const v=read();if(v)est(v)}
+}
+</script>
+</main></body></html>
